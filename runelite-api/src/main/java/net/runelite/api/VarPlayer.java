@@ -42,6 +42,7 @@ public enum VarPlayer
 	SPECIAL_ATTACK_ENABLED(301),
 
 	IN_RAID_PARTY(1427),
+	IS_POISONED(102),
 
 	/**
 	 * Experience tracker goal start.

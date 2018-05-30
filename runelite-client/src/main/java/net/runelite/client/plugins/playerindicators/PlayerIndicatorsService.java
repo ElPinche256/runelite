@@ -30,11 +30,16 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
+import lombok.extern.slf4j.Slf4j;
 
 @Singleton
+@Slf4j
 public class PlayerIndicatorsService
 {
 	private final Client client;
+
 	private final PlayerIndicatorsConfig config;
 
 	@Inject
@@ -82,10 +87,53 @@ public class PlayerIndicatorsService
 			{
 				consumer.accept(player, config.getTeamMemberColor());
 			}
-			else if (config.highlightNonClanMembers() && !isClanMember)
+			else if (config.highlightNonClanMembers() && !isClanMember && !config.hideNAP())
 			{
 				consumer.accept(player, config.getNonClanMemberColor());
 			}
+			else if (config.highlightNonClanMembers() && !isClanMember && config.hideNAP())
+			{
+				if (canAttack(player.getCombatLevel()))
+				{
+					consumer.accept(player, config.getNonClanMemberColor());
+				}
+			}
 		}
+	}
+
+	public boolean canAttack(Integer target)
+	{
+		int combat = client.getLocalPlayer().getCombatLevel();
+
+		if (client.getWorldType().equals(2))
+		{
+			int minimumP = combat - 15;
+			int maximumP = combat + 15;
+
+			if (target < minimumP || target > maximumP)
+			{
+				return false;
+			}
+		}
+
+		if (isWidgetVisible(client.getWidget(WidgetInfo.WILDERNESS_CONTAINER)))
+		{
+			int wildLvl = Integer.valueOf(client.getWidget(WidgetInfo.WILDERNESS_LEVEL).getText().replace("Level: ", ""));
+			if (wildLvl != 0) {
+				int minimumW = (combat - wildLvl) <= 3 ? 3 : combat - wildLvl;
+				int maximumW = (combat + wildLvl) >= 126 ? 126 : combat + wildLvl;
+
+				if (target < minimumW || target > maximumW) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	private boolean isWidgetVisible(Widget widget)
+	{
+		return widget != null && !widget.isHidden();
 	}
 }
